@@ -18,7 +18,8 @@ bot = commands.Bot()
 @bot.event
 async def on_ready():
     print(f"Готово! {bot.user} онлайн!")
-    bot.loop.create_task(on_node())
+    await on_node()
+    #bot.loop.create_task(on_node())
 
 @bot.event
 async def on_wavelink_node_ready(node: wavelink.Node):
@@ -35,14 +36,14 @@ volume = 20
 ### NUNO ###
 
 
-@bot.event
-async def on_wavelink_track_end(self, interaction: nextcord.Interaction):
-    global player
-    print("da pizdec")
-    try:
-        await player.play(player.queue.get(), replace=False, populate=True)
-    except:
-        print("Пизда")
+#@bot.event
+#async def on_wavelink_track_end(self, vc: wavelink.Player, track: wavelink.Playable, reason): 
+#    global player
+#    print("pam")
+#    try:
+#        await player.play(player.queue.get(), replace=False, populate=False)
+#    except:
+#        print("pom")
 
 
 
@@ -62,8 +63,11 @@ async def join(interaction: nextcord.Interaction):
     await interaction.response.send_message(f"Уже иду 0w0")
     try:
         player = await interaction.user.voice.channel.connect(cls=wavelink.Player)
+        print(f"player is created on {interaction.user.voice.channel}")
     except:
         await player.move_to(interaction.user.voice.channel)
+        print(f"gonna move the player to {interaction.user.voice.channel}")
+    player.autoplay = True
 
 ## leave
 @bot.slash_command(guild_ids=[])
@@ -73,31 +77,33 @@ async def leave(interaction: nextcord.Interaction):
     await player.disconnect()
 
 ## pause
-#@bot.slash_command(guild_ids=[])
-#async def pause(interaction: nextcord.Interaction):
-#    vc: wavelink.Player = interaction.guild.voice_client
-#    try:
-#        await vc.pause()
-#        await interaction.response.send_message("=w= zᶻ")
-#    except:
-#        print("oi")
+@bot.slash_command(guild_ids=[])
+async def pause(interaction: nextcord.Interaction):
+    global player
+    try:
+        await player.pause()
+        await interaction.response.send_message("=w= zᶻ")
+    except:
+        print("can't pause? what?")
 
 ## resume
-#@bot.slash_command(guild_ids=[])
-#async def resume(interaction: nextcord.Interaction):
-#    vc: wavelink.Player = interaction.guild.voice_client
-#    try:
-#        await vc.resume()
-#        await interaction.response.send_message("0w0 !")
-#    except:
-#        print("io")
+@bot.slash_command(guild_ids=[])
+async def resume(interaction: nextcord.Interaction):
+    global player
+    try:
+        await player.resume()
+        await interaction.response.send_message("0w0 !")
+    except:
+        print("lol")
 
 ## stop
-#@bot.slash_command(guild_ids=[])
-#async def stop(interaction: nextcord.Interaction):
-#    vc: wavelink.Player = interaction.guild.voice_client
-#    vc.stop()
-#    vc.cleanup()
+@bot.slash_command(guild_ids=[])
+async def stop(interaction: nextcord.Interaction):
+    global player
+    await player.stop()
+    player.queue.clear()
+    player.auto_queue.clear()
+    await interaction.response.send_message("Очередь очищена!")
 
 
 
@@ -106,14 +112,10 @@ async def leave(interaction: nextcord.Interaction):
 async def play(interaction: nextcord.Interaction):
     pass
 
+
 @play.subcommand(description="Искать песиничку по названию")
 async def search(interaction : nextcord.Interaction, query: str):
     global player, volume
-    #destination = interaction.user.voice.channel
-
-    #if not player.is_connected():
-    #    await interaction.response.send_message("Позови меня с собой...")
-    #    return
 
     await player.set_volume(volume)
     tracks = await wavelink.YouTubeTrack.search(query)
@@ -123,21 +125,10 @@ async def search(interaction : nextcord.Interaction, query: str):
         return
     
     await interaction.response.send_message(f"Песиничка в очереди ^w^\n{tracks[0].title}")
-    player.auto_queue.put(tracks[0])
+    player.queue.put(tracks[0])
 
     if not player.is_playing():
-        await player.play(player.auto_queue.get(), replace=False)
-
-
-## link
-@play.subcommand(description="Играть песиничку с ютабчика по URL")
-async def link(interaction : nextcord.Interaction, link: str):
-    
-    #destination = interaction.user.voice.channel
-    
-
-    #tracks = await wavelink.YouTubeTrack.search("Ocean Drive - Duke Dumont")
-    pass
+        await player.play(player.queue.get(), populate=False)
 
 
 
@@ -145,14 +136,14 @@ async def link(interaction : nextcord.Interaction, link: str):
 @bot.slash_command(description="Показывает очередь песиничек", guild_ids=[])
 async def queue(interaction: nextcord.Interaction):
     global player
-    if not player.auto_queue.is_empty:
-        queue = player.auto_queue.copy()
-        songs = []
+    if not player.queue.is_empty:
+        queue = player.queue.copy()
+        songs = ""
         song_count = 0
         for song in queue:
             song_count += 1
-            songs.append(song)
-        await interaction.response.send_message(queue)
+            songs += f"{song_count}: {song.title}"+"\n"
+        await interaction.response.send_message(songs)
     else:
         await interaction.response.send_message("Очередь пуста!")
 
