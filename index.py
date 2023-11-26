@@ -107,6 +107,17 @@ async def stop(interaction: nextcord.Interaction):
 
 
 
+## skip
+@bot.slash_command(guild_ids=[])
+async def skip(interaction: nextcord.Interaction):
+    global player
+    try:
+        await player.play(player.queue.get(), replace=True)
+    except:
+        print("can't skip? what?")
+
+
+
 ## play
 @bot.slash_command(guild_ids=[])
 async def play(interaction: nextcord.Interaction):
@@ -146,6 +157,31 @@ async def queue(interaction: nextcord.Interaction):
         await interaction.response.send_message(songs)
     else:
         await interaction.response.send_message("Очередь пуста!")
+
+
+## vulume up
+@bot.slash_command(guild_ids=[])
+async def v_up(interaction: nextcord.Interaction):
+    global player, volume
+    if volume < 300:
+        volume+=10
+        try:
+            player.volume = volume
+        except:
+            pass
+    print(volume)
+
+## vulume down
+@bot.slash_command(guild_ids=[])
+async def v_down(interaction: nextcord.Interaction):
+    global player, volume
+    if volume > 0:
+        volume-=10
+        try:
+            player.volume = volume
+        except:
+            pass
+    print(volume)
 
 
 bot.run("token")
