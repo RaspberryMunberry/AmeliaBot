@@ -30,7 +30,6 @@ async def on_node():
     await wavelink.NodePool.connect(client=bot, nodes=[node])
 
 player: wavelink.Player = wavelink.Player
-volume = 20
 
 
 ### NUNO ###
@@ -68,6 +67,7 @@ async def join(interaction: nextcord.Interaction):
         await player.move_to(interaction.user.voice.channel)
         print(f"gonna move the player to {interaction.user.voice.channel}")
     player.autoplay = True
+    await player.set_volume(10)
 
 ## leave
 @bot.slash_command(guild_ids=[])
@@ -126,9 +126,9 @@ async def play(interaction: nextcord.Interaction):
 
 @play.subcommand(description="Искать песиничку по названию")
 async def search(interaction : nextcord.Interaction, query: str):
-    global player, volume
+    global player
 
-    await player.set_volume(volume)
+    #await player.set_volume(volume)
     tracks = await wavelink.YouTubeTrack.search(query)
 
     if not tracks:
@@ -159,29 +159,38 @@ async def queue(interaction: nextcord.Interaction):
         await interaction.response.send_message("Очередь пуста!")
 
 
+
 ## vulume up
 @bot.slash_command(guild_ids=[])
 async def v_up(interaction: nextcord.Interaction):
-    global player, volume
-    if volume < 300:
-        volume+=10
+    global player
+    if player.volume < 300:
         try:
-            player.volume = volume
+            await player.set_volume(player.volume+20)
         except:
             pass
-    print(volume)
+    print(player.volume)
 
 ## vulume down
 @bot.slash_command(guild_ids=[])
 async def v_down(interaction: nextcord.Interaction):
-    global player, volume
-    if volume > 0:
-        volume-=10
+    global player
+    if player.volume > 0:
         try:
-            player.volume = volume
+            await player.set_volume(player.volume-20)
         except:
             pass
-    print(volume)
+    print(player.volume)
+
+## vulume set
+@bot.slash_command(guild_ids=[])
+async def v_set(interaction: nextcord.Interaction, vol: int):
+    global player
+    if vol <= 0:
+        await player.set_volume(0)
+    elif vol <= 1000:
+        await player.set_volume(vol)
+    print(player.volume)
 
 
 bot.run("token")
